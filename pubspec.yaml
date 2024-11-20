@@ -1,0 +1,44 @@
+name: finapp
+
+description: A new Flutter project.
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Font package for various text styles
+  google_fonts: ^4.0.1
+  
+  # For internationalization and localization of messages
+  intl: ^0.18.0
+  
+  # State management solution
+  provider: ^6.0.0
+  
+  # Core Firebase functionality for Flutter
+  firebase_core: ^3.7.0
+  
+  # Cloud Firestore integration
+  cloud_firestore: ^5.4.5
+  
+  # To read, write, and create Excel files
+  excel: ^2.0.0
+  
+  # For picking files from the device storage
+  file_picker: ^5.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
