@@ -56,7 +56,7 @@ class _LoginPageState extends State<LoginPage> {
                       },
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        backgroundColor: Colors.teal,
+                        backgroundColor: Colors.blue,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         minimumSize: const Size(120, 40),
                         textStyle: const TextStyle(fontSize: 15),

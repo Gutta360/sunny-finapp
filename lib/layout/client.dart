@@ -1,77 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class RegisterForm extends StatefulWidget {
-  const RegisterForm({super.key});
+class Client extends StatefulWidget {
+  const Client({super.key});
 
   @override
-  _RegisterFormState createState() => _RegisterFormState();
+  _ClientState createState() => _ClientState();
 }
 
-class _RegisterFormState extends State<RegisterForm> {
+class _ClientState extends State<Client> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
-  Map<String, bool> _proofsCollected = {
-    'Cheques': false,
-    'Notes': false,
-    'Stamps': false,
-    'Documents': false,
-  };
+  Future<String> _generateCustomerId() async {
+    DocumentReference counterDoc = FirebaseFirestore.instance
+        .collection('counters')
+        .doc('customer_counter');
+
+    return FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot snapshot = await transaction.get(counterDoc);
+
+      if (!snapshot.exists) {
+        throw Exception("Counter document does not exist!");
+      }
+
+      int currentValue = snapshot.get('value');
+      int newValue = currentValue + 1;
+
+      transaction.update(counterDoc, {'value': newValue});
+
+      return 'CUST$newValue';
+    });
+  }
+
+  Future<bool> _isNameUnique(String name) async {
+    QuerySnapshot query = await FirebaseFirestore.instance
+        .collection('customers')
+        .where('name', isEqualTo: name)
+        .get();
+    return query.docs.isEmpty;
+  }
+
+  Future<bool> _isPhoneUnique(String phone) async {
+    QuerySnapshot query = await FirebaseFirestore.instance
+        .collection('customers')
+        .where('phone', isEqualTo: phone)
+        .get();
+    return query.docs.isEmpty;
+  }
 
   void _saveForm() async {
     if (_formKey.currentState!.validate()) {
+      String name = _nameController.text.trim();
+      String phone = _phoneController.text.trim();
+
+      bool isNameUnique = await _isNameUnique(name);
+      bool isPhoneUnique = await _isPhoneUnique(phone);
+
+      if (!isNameUnique) {
+        _showError("The name already exists.");
+        return;
+      }
+      if (!isPhoneUnique) {
+        _showError("The phone number already exists.");
+        return;
+      }
+
       try {
-        // Check if the customer with the same name already exists
-        QuerySnapshot existingCustomer = await FirebaseFirestore.instance
-            .collection('clients')
-            .where('name', isEqualTo: _nameController.text)
-            .get();
+        String customerId = await _generateCustomerId();
 
-        if (existingCustomer.docs.isNotEmpty) {
-          // Show an alert if the customer with the same name already exists
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Error'),
-              content: const Text('Customer with this name already exists'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        } else {
-          // Collect selected proofs
-          List<String> selectedProofs = _proofsCollected.entries
-              .where((entry) => entry.value)
-              .map((entry) => entry.key)
-              .toList();
+        await FirebaseFirestore.instance
+            .collection('customers')
+            .doc(customerId)
+            .set({
+          'name': name,
+          'phone': phone,
+        });
 
-          // Save the form data to Firestore if the name doesn't exist
-          await FirebaseFirestore.instance.collection('customers').add({
-            'name': _nameController.text,
-            'phone': _phoneController.text,
-            'proofsCollected': selectedProofs,
-          });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Form Saved Successfully'),
+            backgroundColor: Colors.blue,
+          ),
+        );
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Form Saved Successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          // Clear the form after saving
-          _nameController.clear();
-          _phoneController.clear();
-          setState(() {
-            _proofsCollected.updateAll((key, value) => false);
-          });
-        }
+        _nameController.clear();
+        _phoneController.clear();
       } catch (error) {
         print("Error adding document: $error");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -82,6 +97,15 @@ class _RegisterFormState extends State<RegisterForm> {
         );
       }
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -107,22 +131,20 @@ class _RegisterFormState extends State<RegisterForm> {
                   _buildNameField(),
                   const SizedBox(height: 16),
                   _buildPhoneField(),
-                  const SizedBox(height: 16),
-                  _buildProofsCollectedField(),
                   const SizedBox(height: 35),
                   Center(
                     child: ElevatedButton(
                       onPressed: _saveForm,
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        backgroundColor: Colors.teal,
+                        backgroundColor: Colors.blue,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         minimumSize: const Size(120, 40),
                         textStyle: const TextStyle(
                           fontSize: 15,
                         ),
                       ),
-                      child: Text('Save'),
+                      child: const Text('Save'),
                     ),
                   ),
                 ],
@@ -142,7 +164,7 @@ class _RegisterFormState extends State<RegisterForm> {
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Name is required';
-        } else if (!RegExp(r'^[a-zA-Z]+$').hasMatch(value)) {
+        } else if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
           return 'Name should be alphabetic only';
         }
         return null;
@@ -164,29 +186,6 @@ class _RegisterFormState extends State<RegisterForm> {
         }
         return null;
       },
-    );
-  }
-
-  Widget _buildProofsCollectedField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Proofs Collected',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        ..._proofsCollected.keys.map((proof) {
-          return CheckboxListTile(
-            title: Text(proof),
-            value: _proofsCollected[proof],
-            onChanged: (bool? value) {
-              setState(() {
-                _proofsCollected[proof] = value ?? false;
-              });
-            },
-          );
-        }).toList(),
-      ],
     );
   }
 }

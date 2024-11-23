@@ -1,3 +1,4 @@
+import 'package:finapp/layout/clientdetails.dart';
 import 'package:flutter/material.dart';
 import 'package:finapp/appdata/docs_upload.dart';
 import 'package:finapp/layout/login.dart';
@@ -19,7 +20,7 @@ class _LayoutWidgetState extends State<LayoutWidget> {
   Widget build(BuildContext context) {
     final globalData = Provider.of<GlobalData>(context);
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: Scaffold(
         appBar: AppBar(
           bottom: const TabBar(
@@ -34,6 +35,10 @@ class _LayoutWidgetState extends State<LayoutWidget> {
               Tab(
                 icon: Icon(Icons.account_circle),
                 text: 'Clients',
+              ),
+              Tab(
+                icon: Icon(Icons.account_circle),
+                text: 'Client Details',
               ),
               Tab(
                 icon: Icon(Icons.article_outlined),
@@ -65,7 +70,8 @@ class _LayoutWidgetState extends State<LayoutWidget> {
             globalData.isUserLoggedIn
                 ? _buildAlreadyLoggedInTab(context, globalData)
                 : LoginPage(), // Pass callback
-            globalData.isUserLoggedIn ? RegisterForm() : _buildDisabledTab(),
+            globalData.isUserLoggedIn ? Client() : _buildDisabledTab(),
+            globalData.isUserLoggedIn ? ClientDetails() : _buildDisabledTab(),
             globalData.isUserLoggedIn ? TxnForm() : _buildDisabledTab(),
             globalData.isUserLoggedIn ? TxnSearchForm() : _buildDisabledTab(),
             globalData.isUserLoggedIn ? UploadWidget() : _buildDisabledTab(),
@@ -106,7 +112,7 @@ Widget _buildAlreadyLoggedInTab(BuildContext context, GlobalData globalData) {
         },
         style: ElevatedButton.styleFrom(
           foregroundColor: Colors.white,
-          backgroundColor: Colors.teal,
+          backgroundColor: Colors.blue,
           padding: const EdgeInsets.symmetric(vertical: 14),
           minimumSize: const Size(120, 40),
           textStyle: const TextStyle(fontSize: 15),
